@@ -48,7 +48,7 @@
 ## Carried assumptions
 
 - Stack: Python via `uv`; one notebook per phase + `src/` modules; `pandas`, `statsmodels`/`linearmodels`; `pytest` on ingest; no DB unless the data demands it.
-- Model policy: Opus runs build sessions; Fable only at review gates (final whole-branch review, and the experiment design consult if wanted).
+- Model policy: Opus runs build sessions and routine vivas; Fable only at four gates — (1) experiment design audit before ~10 Aug (live money), (2) Phase 4 identification review before the CV bullet is written, (3) pre-publication whole-repo + privacy review, (4) one mock defense in Oct before interviews. Plus ad hoc: any real booking decision that rides on model output.
 - Public remote created at repo birth; privacy guard precedes data.
 
 ## Open items (deferred, with owners)
