@@ -22,7 +22,7 @@
 
 - **~165 events total: ~150 Fixr + ~15 TBC.xyz/Youni.** All platforms give full per-ticket transaction detail → include everything in every phase; add a `platform` column; verify face-value-vs-fee treatment **per platform** (§8.6).
 - **Cost side:** one master Google Sheet per brand already exists — Phase 0 cost work is consolidation + validation, not archaeology.
-- **Survivorship:** 1–5 cancelled/downscaled events over five years, and their presale histories are **destroyed on-platform**. Memory-only reconstruction (name, date, planned capacity, why pulled, rough presales at pull), rows flagged `cancelled`, excluded from curve fits, one honest README paragraph on the residual bias.
+- **Survivorship:** 1–5 cancelled/downscaled events over five years; presale histories **destroyed on-platform**. **Deferred (2026-07-17):** v1 dataset proceeds without them; ingest gains a `cancelled`-events config hook later. Non-deferrable remainder: the README survivorship paragraph (dataset excludes cancelled events; models are conditioned on events that ran) — due by the pre-publication Fable gate — and the §10 interview answer.
 
 ## Learning protocol (binding)
 
@@ -36,7 +36,7 @@
 
 ## Sequencing
 
-1. **This week, before any data is pulled:** Awande writes `preregistration.md` from memory — the §5.4 pattern list, edited and frozen — and the cancelled-events memory list. Pre-registration precedes first data contact, per §5.3.
+1. **This week, before any data is pulled:** Awande writes `preregistration.md` from memory — the §5.4 pattern list, edited and frozen. Pre-registration precedes first data contact, per §5.3. (Cancelled-events reconstruction deferred — see Survivorship.)
 2. **Phase 0 immediately after** (full steam; the August diet does not block this project).
 3. **Hard deadline ~10 Aug 2026:** autumn randomised tier-pricing experiment (§9) designed and frozen **before first on-sale (~mid-Aug)**. ~8+ autumn events across both brands; event-level randomisation, blocked on artist tier × term-week. Arm price gaps, event selection, and max acceptable revenue downside per arm are decided in that dedicated design session — they are open items, not defaults.
 4. Phases 1–6 in SPEC.md order; Phase 7 last.
@@ -59,3 +59,4 @@
 | Per-platform fee treatment (face vs face+fee) | Phase 0, from the exports | during ingest |
 | Which cost shifters pass the exclusion restriction | Phase 4 | during modelling |
 | Youni/TBC schema quirks | Phase 0 first pull | during ingest |
+| Cancelled-events list + `cancelled` config hook in ingest | deferred by user 2026-07-17 | README disclosure by pre-publication gate; reconstruction whenever |
