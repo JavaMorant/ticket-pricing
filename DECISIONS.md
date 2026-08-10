@@ -55,7 +55,7 @@
 
 | Item | Decided in | By |
 |---|---|---|
-| Experiment arms, price gaps, event list, downside cap | Experiment design session | ~10 Aug hard stop |
+| ~~Experiment arms, price gaps, event list, downside cap~~ **DONE 2026-08-10** — design frozen in `experiment/DESIGN.md` (±15% arms, resident nights only, headliners excluded, permuted-pair assignment, no-abort risk position). Fable design-audit gate (1 of 4) satisfied in the 2026-08-09/10 grilling session; log: filed locally (gitignored) | Experiment design session | ~10 Aug hard stop |
 | Per-platform fee treatment (face vs face+fee) | Phase 0, from the exports | during ingest |
 | Which cost shifters pass the exclusion restriction | Phase 4 | during modelling |
 | Youni/TBC schema quirks | Phase 0 first pull | during ingest |

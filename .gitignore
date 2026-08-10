@@ -1,0 +1,13 @@
+# privacy guard — raw data and real-name keys never enter git
+data/
+*.csv
+*.tsv
+*.xlsx
+*.parquet
+*.local.md
+.env
+.env.*
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
