@@ -2,6 +2,7 @@
 data/
 *.csv
 *.tsv
+*.xls
 *.xlsx
 *.parquet
 *.local.md
@@ -10,4 +11,14 @@ data/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
+.venv/
 .DS_Store
+
+# Anywhere a run's output might get redirected by hand. The validation report and the
+# sniff summary quote real tier labels and real event counts.
+reports/
+
+# Note: the *.csv / *.xls[x] / *.parquet globs above are repo-wide and deliberate.
+# Test fixtures are therefore built in Python (tests/synthetic.py), never committed as
+# data files — nothing that looks like an export can slip into git by accident.

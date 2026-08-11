@@ -51,6 +51,18 @@
 - Model policy: Opus runs build sessions and routine vivas; Fable only at four gates — (1) experiment design audit before ~10 Aug (live money), (2) Phase 4 identification review before the CV bullet is written, (3) pre-publication whole-repo + privacy review, (4) one mock defense in Oct before interviews. Plus ad hoc: any real booking decision that rides on model output.
 - Public remote created at repo birth; privacy guard precedes data.
 
+## Amendments
+
+- **2026-08-11 (Awande, batched decision):** Learning protocol amended for the observational
+  build. Opus agents write the full implementation including the statistical core, under a hard
+  simplicity constraint (OLS + event FE via statsmodels, plain bootstrap Monte Carlo, grouped
+  splits; no gradient boosters; 2SLS only if a cost shifter passes exclusion cleanly). In
+  exchange, every phase ships a plain-English EXPLAINER.md + viva question sheet, and **no
+  interview quotes any number until Awande passes the vivas** (gate 4 mock defense stands).
+  Phase-4 identification review (Fable gate 2) runs in-session before the CV bullet is filled.
+  Reports-as-scripts replace the one-notebook-per-phase assumption, matching the stat-arb/fraud
+  reproducibility pattern (`uv run python -m ...` regenerates every number).
+
 ## Open items (deferred, with owners)
 
 | Item | Decided in | By |
