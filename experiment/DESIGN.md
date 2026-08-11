@@ -133,3 +133,11 @@ outside the pool, so no fixed obligation rides on any assignment.
   date-order-pairing-at-freeze (July sketch) to permuted blocks of 2 in announcement order,
   because the programme announces rolling and no full calendar exists at freeze. Decided
   before unit #1's assignment was computed; equivalent balancing properties.
+- 2026-08-11 (pre-publication, before any outcome data, before first on-sale): a
+  pseudonymisation scrub rewrote repo history prior to the public flip. The two root
+  documents predated the pseudonymisation convention and named real entities; a four-lens
+  sweep of every historical object found them, and `git filter-repo --replace-text` replaced
+  them with convention-consistent pseudonyms (Brand A / Brand B / Event C / generic wording)
+  across all commits. Author and committer dates preserved; commit hashes changed; the
+  pre-scrub history survives only in a local private backup. No design content in this file
+  changed other than this entry.
