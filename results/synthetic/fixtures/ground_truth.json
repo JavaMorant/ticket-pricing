@@ -1,0 +1,46 @@
+{
+  "seed": 20260811,
+  "beta_true": -0.8,
+  "params": {
+    "beta_true": -0.8,
+    "lead_confound": 0.08,
+    "price_shock_loading": 0.55,
+    "capacity_price_loading": 0.3,
+    "cost_shifter_loading": 0.35,
+    "artist_tier_effect": 0.3,
+    "sigma_shock": 0.28,
+    "sigma_tier_noise": 0.1,
+    "base_sellthrough": 0.55,
+    "max_sellthrough": 0.985,
+    "reference_price": 9.0,
+    "tier_step": 0.16,
+    "door_step": 0.3,
+    "price_event_noise_sd": 0.06,
+    "price_jitter_sd": 0.1,
+    "brand_a_growth": 0.16,
+    "brand_b_growth": 0.1,
+    "curve_a": 2.0,
+    "curve_b": 2.6,
+    "multi_ticket_share": 0.28,
+    "n_events": 120,
+    "n_cancelled": 3,
+    "cancelled_demand_multiplier": 0.18,
+    "comp_event_share": 0.6,
+    "other_platform_share": 0.12,
+    "promo_code_share": 0.02
+  },
+  "instruments": {
+    "valid": [
+      "log_hire_index (events.venue_cost / base hire for the venue)"
+    ],
+    "invalid": [
+      "artist_guarantee",
+      "marketing_spend"
+    ]
+  },
+  "expected": {
+    "naive_pooled_beta": "> 0 (wrong sign \u2014 SPEC.md 4.1)",
+    "within_event_beta_with_lead_control": -0.8,
+    "within_event_beta_without_lead_control": "more negative than beta_true while lead_confound > 0 (SPEC.md 4.3)"
+  }
+}

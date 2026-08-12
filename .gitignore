@@ -19,6 +19,17 @@ __pycache__/
 # sniff summary quote real tier labels and real event counts.
 reports/
 
+# Phase results.
+#   results/            REAL-data output: real prices, real margins, real event counts.
+#                       Stays local until the pre-publication Fable gate (DECISIONS.md)
+#                       clears it for the public repo. Ignored on purpose, for now.
+#   results/synthetic/  output of src/pricing/synthetic.py. Nothing in it is real —
+#                       Brand A/B, V1..V4, FAKE ids — so it is committable and un-ignored.
+# `results/*` (not `results/`) so git still descends into the directory and can see the
+# negation below; a plain `results/` would ignore the whole tree and `!` would never fire.
+results/*
+!results/synthetic/
+
 # Note: the *.csv / *.xls[x] / *.parquet globs above are repo-wide and deliberate.
 # Test fixtures are therefore built in Python (tests/synthetic.py), never committed as
 # data files — nothing that looks like an export can slip into git by accident.
