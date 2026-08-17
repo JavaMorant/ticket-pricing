@@ -591,3 +591,12 @@ is due. The next Fable gate is #2 (Phase 4 identification review), a long way of
 - CV: the Resume_2027 ticket-pricing entry is being rewritten to machinery-only truth (no panel
   counts, no elasticity/MC results until real data exists). Master ledger:
   `~/dev/quant/NEXT-SESSION.md`.
+
+### Addendum 2026-08-18 — the suite is RED at HEAD
+A verification sweep ran `uv run pytest` at `ea89ffa`: **392 passed / 10 FAILED**. All ten are
+the "real data is refused while the preregistration is a draft" guard tests (test_phase1–6 +
+test_synthetic). Hypothesis, unconfirmed: the freeze commit `1c7196d` flipped prereg out of
+DRAFT and the guard tests weren't updated — the "402 green" statement above was true before
+that commit. Diagnose properly before fixing (the guard itself may be fine and only the test
+fixtures stale — or the guard may now be dead, which would matter). Until green, no CV claim
+may cite a test count for this repo.
