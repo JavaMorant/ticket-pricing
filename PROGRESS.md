@@ -576,3 +576,18 @@ provisional until this is settled. It is cheap to resolve and expensive to get w
 
 **Gate check:** nothing here touches live money or the statistical core, so no Fable gate
 is due. The next Fable gate is #2 (Phase 4 identification review), a long way off.
+
+---
+
+## 2026-08-17 — PARKED (note: sections above predate the 2026-08-12 code-complete session)
+
+- Phases 0–6 + the prereg freeze are DONE (commits `7415c8c`, `1c7196d`): 402 tests green as of
+  2026-08-12, machinery-level gate-2 review of phase 4 PASSED (Fable, in-session). The
+  "Next session" list above is superseded except item 2 (exports).
+- **PARKED indefinitely (Awande, 2026-08-17): platform exports are not coming for now.**
+  `data/raw/{fixr,costs,other}` remain empty; nothing has run on real data.
+- **First experimental on-sale did NOT go out w/e 15/16 Aug** (slipped). The frozen design stays
+  valid; DESIGN.md §4 SOP governs whenever an autumn on-sale actually happens.
+- CV: the Resume_2027 ticket-pricing entry is being rewritten to machinery-only truth (no panel
+  counts, no elasticity/MC results until real data exists). Master ledger:
+  `~/dev/quant/NEXT-SESSION.md`.
