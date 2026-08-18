@@ -1,9 +1,10 @@
 # PROGRESS — ticket-pricing
 
-**Last updated:** 2026-08-12 (adversarial review of Phases 1–6 applied in full — findings
-1–8, then 9–24 in a second pass. 24 of 24 fixed)
+**Last updated:** 2026-08-18 (prereg-guard tests repaired — suite green at 412; see the
+2026-08-18 entry at the end. Previously 2026-08-12: adversarial review of Phases 1–6 applied
+in full — findings 1–8, then 9–24 in a second pass. 24 of 24 fixed)
 **Phase:** 1–6 DONE on synthetic data + REVIEWED. Phase 0/0.5 done, **no data ingested**
-**Branch:** working tree, uncommitted, left for review
+**Branch:** `main`, public at github.com/JavaMorant/ticket-pricing
 
 ---
 
@@ -31,8 +32,12 @@ regression test that was verified to fail against the defect it guards.
 | 6 — counterfactual | DONE | `-m pricing.phase6 --synthetic` | `phase6_counterfactual.md` | **2026-08-12, 5 findings fixed** (2, 4, 10, 17, and 12's plumbing) |
 | 7 — Streamlit + post-event auto-report | NOT STARTED | — | — | — |
 
-All six refuse `--real` (exit 1, reason printed) while `preregistration.md` says DRAFT.
-`data/raw/` and `data/derived/` are still empty and nothing outside the guard reads them.
+All six refuse `--real` (exit 1, reason printed to stderr) at **two gates in order**: the
+pre-registration gate (`preregistration.md` must not be DRAFT or MISSING, SPEC.md §5.3) and
+then the data gate (the three derived tables must exist). Since commit `1c7196d` the list is
+FROZEN, so gate 1 is open and **gate 2 is what closes the real path today**. `data/raw/` is
+empty, `ingest` has never run, `data/derived/` does not exist, and nothing outside the guard
+reads them. Both gates are tested in all six phases (see 2026-08-18 below).
 
 ---
 
@@ -595,8 +600,72 @@ is due. The next Fable gate is #2 (Phase 4 identification review), a long way of
 ### Addendum 2026-08-18 — the suite is RED at HEAD
 A verification sweep ran `uv run pytest` at `ea89ffa`: **392 passed / 10 FAILED**. All ten are
 the "real data is refused while the preregistration is a draft" guard tests (test_phase1–6 +
-test_synthetic). Hypothesis, unconfirmed: the freeze commit `1c7196d` flipped prereg out of
-DRAFT and the guard tests weren't updated — the "402 green" statement above was true before
-that commit. Diagnose properly before fixing (the guard itself may be fine and only the test
-fixtures stale — or the guard may now be dead, which would matter). Until green, no CV claim
-may cite a test count for this repo.
+test_synthetic). ~~Hypothesis, unconfirmed:~~ **RESOLVED 2026-08-18 — see the entry below.**
+The hypothesis was right in outcome and wrong in mechanism. The freeze commit did not "flip
+prereg out of DRAFT": before `1c7196d` the file was **untracked**, so the "402 green" run was
+green against an untracked DRAFT working copy, and `1c7196d` created the tracked file already
+FROZEN. **The guard was never dead** — it was the tests that were, because they read the
+repo's ambient `preregistration.md` instead of injecting a fixture, so they asserted a fact
+about the repo rather than a property of the guard. The real path stayed closed throughout at
+the SECOND gate (frozen + no derived tables → `FileNotFoundError`, exit 1), which at that
+point had zero test coverage. Fixed and green below; the test-count embargo is lifted.
+
+---
+
+## 2026-08-18 — guard tests repaired, both gates now covered (412 green)
+
+**Root cause.** The ten failing guard tests sniffed the repo's ambient `preregistration.md`
+rather than injecting their own, so they were measuring the repo's state, not the guard's
+behaviour; commit `1c7196d` created that file already FROZEN (it was untracked before, which
+is why the historical "402 green" run passed against a DRAFT working copy). The guard
+implementation was correct the whole time — DRAFT refuses, MISSING refuses, FROZEN opens —
+and the real-data path was never actually open: since the freeze it has been held shut by the
+second gate, `data/derived/` not existing, which had **zero** coverage until now.
+
+**What changed** (all uncommitted, for review):
+
+1. `dataset.preregistration_status` / `require_frozen_preregistration` now take
+   `path: Path | None = None` and resolve `PREREGISTRATION` **in the body**. The old default
+   argument was evaluated at import, so monkeypatching the module constant did nothing to
+   no-argument callers — including `load_real`, which takes no prereg parameter. Same
+   statuses, same messages, no call-site changes.
+2. The four `tests/test_synthetic.py` guard tests now **inject** a DRAFT fixture
+   (`tests.synthetic.draft_preregistration`) instead of sniffing. No assertion was inverted
+   and no guard test was deleted.
+3. Three new integrity tests: the committed prereg **is** FROZEN; `--real` is **still**
+   refused when frozen because no data has arrived (and writes nothing under `results/`
+   outside `results/synthetic/`); and `data/raw/{fixr,costs,other}` are empty with
+   `data/derived/` absent — "nothing has run on real data" as a checked fact rather than a
+   claim in this file.
+4. The six phase guard tests are renamed (the old names asserted a draft that no longer
+   exists) and **parametrized over both gates**: DRAFT on an injected draft, FROZEN on the
+   real file. Both arms assert exit 1, the expected reason on **stderr**, and not on stdout
+   (the stderr-not-stdout discipline the 2026-08-12 review pinned).
+5. Phases 1 and 2 no longer print "the prereg says DRAFT" into their generated reports —
+   false since the freeze. The post-freeze truth: the list is frozen (SPEC §5.3, `1c7196d`)
+   and the calendar patterns are untested because no real data exists (exports parked). Both
+   tests now assert the report does **not** call the prereg a draft, and
+   `results/synthetic/phase1_descriptives.md` / `phase2_demand_forecast.md` were regenerated
+   (text-only diff; no figure changed).
+6. Freeze-scheduled housekeeping done: the "THIS LIST IS PROVISIONAL" block above
+   `dataset.FEATURES` and the phase 4 "when FROZEN, re-read this module" TODO are gone,
+   `FEATURES` was reconciled against the frozen list (they agree; the three blank "Awande's
+   additions" bullets contribute nothing), and a new test pins every slug to a bullet in the
+   frozen file so the reconciliation cannot rot.
+
+**Result: `uv run pytest` → 412 passed, 0 failed** (was 392 passed / 10 failed; +6 from
+parametrizing the six phase tests, +4 new tests). The safety property is strictly stronger
+than before: the guard is now tested at both gates instead of one, and the absence of real
+data is asserted rather than asserted-about.
+
+**⚠️ DELIBERATE TRIPWIRE — read before "fixing" a future red suite.** Eight assertions now
+encode "no real data exists": the six phase FROZEN arms,
+`test_real_is_still_refused_when_frozen_but_no_data_has_arrived`, and
+`test_no_real_data_has_entered_the_repo`. The moment exports land and `pricing.ingest` runs,
+they ALL fail — **by design**. First data contact is meant to be a suite-breaking event that
+forces a human to consciously rewrite these tests for the with-data world (and to re-read the
+pre-registration rules while doing it). Deleting or loosening them to get green is precisely
+the failure mode this entry just repaired. Also note: any external claim quoting "412 tests"
+should carry the caveat that ~8 of them pin the absence of data and will change when it
+arrives. (A stray `.DS_Store` in `data/raw/*` also trips the strict empty-dir assertion —
+that strictness is intentional; the assertion message names the offending file.)

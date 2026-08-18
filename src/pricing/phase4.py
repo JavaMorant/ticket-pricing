@@ -59,8 +59,10 @@ from pricing import phaseio
 # The pre-registered feature list (SPEC.md 5.4) lives in `dataset.FEATURES`. Phase 4 uses
 # two of its entries directly — `lead_time_days` as the confound control, `academic_year`
 # as the SPEC.md 8.9 trend control in the instrument specs — but it does not import the
-# list, because it tests none of them. When preregistration.md is FROZEN, re-read this
-# module and check those two controls are still on the frozen list.
+# list, because it tests none of them. Both controls survived the freeze (preregistration.md
+# is FROZEN as of 1c7196d): "Lead time / days-to-event" and "Academic-year cohort effects"
+# are bullets on the frozen list, and the reconciliation is pinned by
+# `test_every_feature_slug_traces_to_a_bullet_in_the_frozen_preregistration`.
 
 REPORT_FILENAME = "phase4_elasticity.md"
 

@@ -30,9 +30,13 @@ uv run python -m pricing.phase5 --synthetic     # phase5_risk.md
 uv run python -m pricing.phase6 --synthetic     # phase6_counterfactual.md
 ```
 
-Every one of them refuses `--real` while `preregistration.md` says DRAFT, and prints why
-(SPEC.md §5.3). The reports and PNGs here are committable for the same reason the fixture
-is: they describe a programme that does not exist.
+Every one of them refuses `--real` and prints why. There are two gates in order: the
+pre-registration gate (SPEC.md §5.3 — `preregistration.md` must not be DRAFT or MISSING),
+and then the data gate (the three derived tables must exist). Since commit `1c7196d` the
+list is FROZEN, so it is the second gate that refuses today: `data/raw/` is empty, `ingest`
+has never run, and `data/derived/` does not exist. The reports and PNGs here are
+committable for the same reason the fixture is: they describe a programme that does not
+exist.
 
 ## Why the parquet files are not committed
 

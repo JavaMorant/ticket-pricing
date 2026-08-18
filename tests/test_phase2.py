@@ -17,7 +17,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pricing import phase2, phaseio, synthetic
+import tests.synthetic as fixtures
+from pricing import dataset, phase2, phaseio, synthetic
 
 
 @lru_cache(maxsize=2)
@@ -249,11 +250,21 @@ def test_build_writes_a_report_and_three_figures(data, tmp_path):
     assert "Final-year holdout" in text
     assert "SPEC.md §5.4" in text, "the report must say which features are gated on the prereg"
     assert "upper bound" in text
+    # The list was FROZEN in 1c7196d (2026-08-12); the report may not still call it a draft.
+    assert "draft" not in text.lower(), "the pre-registration has been FROZEN since 1c7196d"
 
 
-def test_real_data_is_refused_while_the_preregistration_is_draft(capsys):
-    """SPEC.md 5.3. The refusal goes to STDERR, like every other phase's."""
+@pytest.mark.parametrize(
+    ("gate", "expected"),
+    [("DRAFT", "preregistration.md is DRAFT"), ("FROZEN", "no derived tables")],
+)
+def test_real_data_is_refused(gate, expected, capsys, tmp_path, monkeypatch):
+    """SPEC.md 5.3, both gates (see test_phase1 for the full note). Refusal on STDERR."""
+    if gate == "DRAFT":
+        monkeypatch.setattr(dataset, "PREREGISTRATION", fixtures.draft_preregistration(tmp_path))
     assert phase2.main(["--real"]) == 1
     captured = capsys.readouterr()
-    assert "preregistration.md" in captured.err
-    assert "preregistration.md" not in captured.out
+    assert "refused" in captured.err
+    assert expected in captured.err
+    assert "refused" not in captured.out
+    assert expected not in captured.out

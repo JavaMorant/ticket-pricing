@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -510,15 +511,22 @@ def test_write_fixtures_json_holds_the_scalar_truth(tmp_path, data):
 # --------------------------------------------------------------------------------------
 
 
-def test_real_data_is_refused_while_the_preregistration_is_a_draft():
+def test_real_data_is_refused_while_the_preregistration_is_a_draft(tmp_path, monkeypatch):
+    """The DRAFT arm of the guard, on an INJECTED draft — never the repo's own file.
+
+    Until 2026-08-18 this test sniffed the ambient `preregistration.md`, so it stopped
+    testing the guard the moment commit `1c7196d` froze that file. The guard was fine; the
+    test was measuring the repo, not the code.
+    """
+    monkeypatch.setattr(dataset, "PREREGISTRATION", fixtures.draft_preregistration(tmp_path))
     assert dataset.preregistration_status() == "DRAFT"
     with pytest.raises(RuntimeError, match="OFF LIMITS"):
         dataset.load_real()
 
 
-def test_the_refusal_says_why_and_what_to_do():
+def test_the_refusal_says_why_and_what_to_do(tmp_path):
     with pytest.raises(RuntimeError) as excinfo:
-        dataset.require_frozen_preregistration()
+        dataset.require_frozen_preregistration(fixtures.draft_preregistration(tmp_path))
     message = str(excinfo.value)
     assert "SPEC.md 5.3" in message
     assert "preregistration.md" in message
@@ -537,10 +545,68 @@ def test_a_frozen_preregistration_opens_the_gate(tmp_path):
     dataset.require_frozen_preregistration(frozen)  # does not raise
 
 
-def test_load_real_stops_at_the_guard_before_touching_the_filesystem(tmp_path):
-    """The guard runs first, so a missing data/derived/ is never even the complaint."""
+def test_load_real_stops_at_the_guard_before_touching_the_filesystem(tmp_path, monkeypatch):
+    """The guard runs first, so a missing data/derived/ is never even the complaint.
+
+    `derived_dir=tmp_path` exists and holds no tables, so a loader that checked the
+    filesystem first would raise FileNotFoundError. The RuntimeError proves the ordering.
+    """
+    monkeypatch.setattr(dataset, "PREREGISTRATION", fixtures.draft_preregistration(tmp_path))
     with pytest.raises(RuntimeError, match="OFF LIMITS"):
         dataset.load_real(derived_dir=tmp_path)
+
+
+def test_the_committed_preregistration_is_frozen():
+    """The positive integrity claim, checked rather than assumed.
+
+    Every other guard test injects its own file, which means nothing would notice if the
+    repo's real `preregistration.md` were un-frozen or its Status line reworded. This is
+    the one test that reads the committed file on purpose.
+    """
+    assert dataset.preregistration_status() == "FROZEN"
+
+
+def _results_outside_synthetic() -> set[Path]:
+    """Everything under results/ that is not part of the committable synthetic tree."""
+    results = phaseio.REAL_RESULTS_DIR
+    if not results.exists():
+        return set()
+    synthetic_dir = phaseio.SYNTHETIC_RESULTS_DIR
+    return {
+        path
+        for path in results.rglob("*")
+        if path != synthetic_dir and synthetic_dir not in path.parents
+    }
+
+
+def test_real_is_still_refused_when_frozen_but_no_data_has_arrived(capsys):
+    """The SECOND gate — the one actually holding the door shut today.
+
+    Since `1c7196d` the prereg is FROZEN, so gate one is open and this is the only thing
+    left between `--real` and an analysis. It had zero coverage until 2026-08-18: the whole
+    guard suite was resting on a gate that had already been opened. No monkeypatching here
+    on purpose — this asserts a fact about the repo as it stands.
+    """
+    assert dataset.preregistration_status() == "FROZEN"
+    before = _results_outside_synthetic()
+    assert synthetic.main(["--real"]) == 1
+    assert "no derived tables" in capsys.readouterr().err
+    assert _results_outside_synthetic() == before, "a refused --real run wrote to results/"
+
+
+def test_no_real_data_has_entered_the_repo():
+    """Turns "nothing has run on real data" into a checked fact, not a PROGRESS.md claim.
+
+    `data/raw/` is where exports would land and `data/derived/` is what `ingest` would
+    build from them. Both are empty, so there is nothing for a phase to have read even if
+    a guard had failed. If an export ever does arrive this test fails first, and whoever
+    put it there has to come and read the pre-registration rules.
+    """
+    raw = dataset.REPO_ROOT / "data" / "raw"
+    for folder in ("fixr", "costs", "other"):
+        contents = sorted(p.name for p in (raw / folder).iterdir())
+        assert contents == [], f"data/raw/{folder} is not empty: {contents}"
+    assert not dataset.DERIVED_DIR.exists(), f"{dataset.DERIVED_DIR} exists — ingest has run"
 
 
 def test_resolve_is_the_only_synthetic_loader_and_returns_the_tables_and_the_truth():
@@ -574,6 +640,52 @@ def test_features_needing_external_data_are_listed_separately():
     assert not set(dataset.FEATURES) & set(dataset.FEATURES_NEEDING_EXTERNAL_DATA)
 
 
+# Each slug in `dataset.FEATURES`, and the words of the bullet in the FROZEN
+# preregistration.md it was written from. The file is prose and the constant is code; this
+# is the join between them. Several slugs share a bullet, which is the point: the frozen
+# list says "Venue / city / capacity" on one line and SPEC.md §5.6 groups freshers' week,
+# semester start, the loan instalment and weather into one undecomposed effect.
+FEATURE_BULLETS = {
+    "start_of_semester": "Freshers' week",
+    "term_phase": "Semester start / mid / end",
+    "exam_period": "Revision and exam periods",
+    "reading_week": "Reading week",
+    "end_of_term": "End-of-term release",
+    "vacation_vs_term": "Vacation vs term time",
+    "ball_season": "Ball season",
+    "day_of_week": "Day of week",
+    "lead_time_days": "Lead time / days-to-event",
+    "days_since_last_event": "Days since our last event",
+    "events_in_trailing_14d": "Events in trailing 14 days",
+    "artist_billing_tier": "Artist billing tier",
+    "venue": "Venue / city / capacity",
+    "city": "Venue / city / capacity",
+    "capacity": "Venue / city / capacity",
+    "brand": "Brand (A vs B)",
+    "academic_year": "Academic-year cohort effects",
+}
+
+
+def test_every_feature_slug_traces_to_a_bullet_in_the_frozen_preregistration():
+    """The reconciliation done at the freeze, pinned so it cannot quietly rot.
+
+    `dataset.FEATURES` used to carry a "THIS LIST IS PROVISIONAL — copy the frozen one in"
+    comment. The list is frozen now, the two agree on substance, and this is what keeps
+    them agreeing: a slug with no bullet behind it would be a pattern nobody pre-registered.
+    """
+    assert dataset.preregistration_status() == "FROZEN"
+    bullets = [
+        line.strip()
+        for line in dataset.PREREGISTRATION.read_text(encoding="utf-8").splitlines()
+        if line.strip().startswith("- [")
+    ]
+    assert set(FEATURE_BULLETS) == set(dataset.FEATURES), "a slug was added or removed unmapped"
+    for slug, words in FEATURE_BULLETS.items():
+        assert any(words in bullet for bullet in bullets), (
+            f"{slug}: nothing in the frozen preregistration.md says {words!r}"
+        )
+
+
 # --------------------------------------------------------------------------------------
 # 12. CLI
 # --------------------------------------------------------------------------------------
@@ -587,6 +699,7 @@ def test_cli_synthetic_run_prints_all_three_betas(capsys):
     assert "event FE + lead" in out
 
 
-def test_cli_real_run_is_refused(capsys):
+def test_cli_real_run_is_refused(capsys, tmp_path, monkeypatch):
+    monkeypatch.setattr(dataset, "PREREGISTRATION", fixtures.draft_preregistration(tmp_path))
     assert synthetic.main(["--real"]) == 1
     assert "OFF LIMITS" in capsys.readouterr().err

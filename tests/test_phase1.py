@@ -25,7 +25,8 @@ from functools import lru_cache
 import pandas as pd
 import pytest
 
-from pricing import phase1, phaseio, report, synthetic
+import tests.synthetic as fixtures
+from pricing import dataset, phase1, phaseio, report, synthetic
 
 
 @lru_cache(maxsize=2)
@@ -191,11 +192,20 @@ def test_build_writes_a_report_and_five_figures(built):
 
 
 def test_report_declares_the_prereg_gate(built):
+    """And declares it TRUTHFULLY: the list was frozen in `1c7196d` (2026-08-12).
+
+    The report used to say the prereg "still says DRAFT". That went false at the freeze and
+    nothing caught it, because no test read the sentence — only the file name. A generated
+    report that misstates the pre-registration status is worse than one that says nothing:
+    it is the artifact a reader would trust about the discipline.
+    """
     out, _ = built
     text = (out / "phase1_descriptives.md").read_text()
     assert "No model is fitted here" in text
     assert "preregistration.md" in text
     assert "SYNTHETIC DATA" in text
+    assert "draft" not in text.lower(), "the pre-registration has been FROZEN since 1c7196d"
+    assert "§5.4" in text
 
 
 def test_the_cli_records_the_seed_it_actually_ran_on(tmp_path, monkeypatch):
@@ -304,17 +314,30 @@ def test_synthetic_output_goes_to_the_committable_directory():
     assert phaseio.SYNTHETIC_RESULTS_DIR != phaseio.REAL_RESULTS_DIR
 
 
-def test_real_data_is_refused_while_the_preregistration_is_draft(capsys):
+@pytest.mark.parametrize(
+    ("gate", "expected"),
+    [("DRAFT", "preregistration.md is DRAFT"), ("FROZEN", "no derived tables")],
+)
+def test_real_data_is_refused(gate, expected, capsys, tmp_path, monkeypatch):
     """SPEC.md 5.3. The whole real path is wired and closed; --real must exit non-zero.
+
+    TWO gates, both exercised. DRAFT is the pre-registration gate, on an injected draft
+    because the repo's own file has been FROZEN since `1c7196d`. FROZEN is the gate that
+    is actually holding the door today: the list is frozen, and `--real` still refuses
+    because `data/derived/` does not exist. Testing only the first arm is what let ten
+    guard tests go stale in one commit (2026-08-18).
 
     The reason goes to STDERR, in every phase, so that `2>/dev/null` cannot hide half the
     refusals (review finding, 2026-08-12).
     """
+    if gate == "DRAFT":
+        monkeypatch.setattr(dataset, "PREREGISTRATION", fixtures.draft_preregistration(tmp_path))
     assert phase1.main(["--real"]) == 1
     captured = capsys.readouterr()
     assert "refused" in captured.err
-    assert "preregistration.md" in captured.err
+    assert expected in captured.err
     assert "refused" not in captured.out
+    assert expected not in captured.out
 
 
 # --------------------------------------------------------------------------------------

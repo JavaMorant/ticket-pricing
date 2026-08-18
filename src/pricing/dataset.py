@@ -4,8 +4,14 @@ Two sources, and this file owns the closed one:
 
     synthetic   the generator in synthetic.py, seeded and deterministic — loaded by
                 `phaseio.resolve`, which needs its ground truth as well as its tables
-    real        `load_real()`: the parquet tables in data/derived/ — REFUSED while
-                preregistration.md is still marked DRAFT
+    real        `load_real()`: the parquet tables in data/derived/ — REFUSED, at two
+                gates in order: (1) preregistration.md must not be DRAFT or MISSING,
+                (2) the three derived tables must exist
+
+As of commit 1c7196d the pre-registration is FROZEN, so gate (1) is open and gate (2) is
+what closes the real path today: `data/raw/` is empty, `ingest` has never run, and
+`data/derived/` does not exist. Both gates are tested — see the parametrized
+`test_real_data_is_refused` in every phase test, and `test_no_real_data_has_entered_the_repo`.
 
 Why the guard exists (SPEC.md 5.3, DECISIONS.md sequencing): the pre-registered pattern
 list must be frozen BEFORE first data contact. If a phase module could read data/derived/
@@ -36,10 +42,12 @@ TABLE_NAMES = ("events", "transactions", "event_tier")
 # Pre-registered features (SPEC.md 5.4)
 # --------------------------------------------------------------------------------------
 #
-# THIS LIST IS PROVISIONAL. Its final contents come from the FROZEN preregistration.md,
-# not from here — this constant exists so the phase modules have something to import
-# today, and so that the moment the file is frozen there is exactly one place to copy it
-# into. When that happens, replace this list with the frozen one and delete this comment.
+# preregistration.md was FROZEN in commit 1c7196d (2026-08-12), and this list was
+# reconciled against it at the freeze: every slug below traces to a bullet in the frozen
+# file, which `test_every_feature_slug_traces_to_a_bullet_in_the_frozen_preregistration`
+# now checks on every run. (The frozen file's three "Awande's additions" bullets were left
+# blank, so they add nothing to reconcile.) The list is closed: adding a slug here without
+# a matching bullet in the frozen file is testing a pattern nobody pre-registered.
 #
 # The names are feature *slugs*, one per bullet in preregistration.md. Several of them
 # collapse into one tested effect on purpose: freshers' week, semester start, the student
@@ -83,23 +91,34 @@ FEATURES_NEEDING_EXTERNAL_DATA: list[str] = [
 # --------------------------------------------------------------------------------------
 
 
-def preregistration_status(path: Path = PREREGISTRATION) -> str:
+def preregistration_status(path: Path | None = None) -> str:
     """Return "DRAFT", "FROZEN" or "MISSING", read off the file's Status line.
 
     Looks for the first line containing "status" (case-insensitive) and asks whether the
     word DRAFT appears in it. Anything else is treated as frozen; a missing file is
     treated as MISSING, which is also refused.
+
+    `path` defaults to `PREREGISTRATION`, resolved HERE rather than in the signature so
+    the default is late-bound. A default argument is evaluated once at import, which made
+    the module constant unpatchable and left every no-argument caller — `load_real`
+    included — reading the real file no matter what a test had set (2026-08-18).
     """
-    if not Path(path).exists():
+    path = PREREGISTRATION if path is None else Path(path)
+    if not path.exists():
         return "MISSING"
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if "status" in line.lower():
             return "DRAFT" if "draft" in line.lower() else "FROZEN"
     return "DRAFT"  # no status line at all -> assume not frozen, refuse
 
 
-def require_frozen_preregistration(path: Path = PREREGISTRATION) -> None:
-    """Raise unless preregistration.md is frozen. The only gate on the real-data path."""
+def require_frozen_preregistration(path: Path | None = None) -> None:
+    """Raise unless preregistration.md is frozen. The first gate on the real-data path.
+
+    `path` is late-bound against `PREREGISTRATION` for the reason in
+    `preregistration_status`. Same statuses, same message, same call sites.
+    """
+    path = PREREGISTRATION if path is None else Path(path)
     status = preregistration_status(path)
     if status == "FROZEN":
         return
@@ -122,7 +141,12 @@ def require_frozen_preregistration(path: Path = PREREGISTRATION) -> None:
 
 
 def load_real(derived_dir: Path = DERIVED_DIR) -> tuple[pd.DataFrame, ...]:
-    """The three derived tables from data/derived/. Refuses while the prereg is DRAFT."""
+    """The three derived tables from data/derived/. Two gates, in this order.
+
+    The pre-registration gate runs FIRST and unconditionally, so a DRAFT list is refused
+    before the filesystem is touched at all — you cannot learn what data exists by watching
+    which error you get. Only then does the loader look for the tables.
+    """
     require_frozen_preregistration()
     derived_dir = Path(derived_dir)
     missing = [n for n in TABLE_NAMES if not (derived_dir / f"{n}.parquet").exists()]

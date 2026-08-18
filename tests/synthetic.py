@@ -6,7 +6,27 @@ are V1..V4, matching the pseudonyms used everywhere that could be committed.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
+
+
+def draft_preregistration(tmp_path: Path) -> Path:
+    """A `preregistration.md` that is still DRAFT, for exercising the real-data guard.
+
+    The repo's own `preregistration.md` has been FROZEN since commit `1c7196d`, so any test
+    that wants to see the DRAFT refusal has to bring its own file. Reading the ambient one
+    is what went silently stale at the freeze: ten guard tests were asserting a fact about
+    the repo rather than a property of the guard, and they all flipped in one commit.
+    """
+    path = Path(tmp_path) / "preregistration.md"
+    path.write_text(
+        "# Pre-registered observational pattern list — fixture\n\n"
+        "**Status: DRAFT — not frozen; first data contact has not happened.**\n",
+        encoding="utf-8",
+    )
+    return path
+
 
 # (event_key, tier_name, unit_price, booking_fee, n_tickets, first_purchase_date)
 _TICKET_SPEC = [

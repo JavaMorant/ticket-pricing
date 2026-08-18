@@ -23,7 +23,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pricing import phase4, phaseio, synthetic
+import tests.synthetic as fixtures
+from pricing import dataset, phase4, phaseio, synthetic
 
 SEEDS = [1, 42, synthetic.DEFAULT_SEED]
 BETA_TOLERANCE = 0.15  # same tolerance the fixture ships with; see tests/test_synthetic.py
@@ -578,6 +579,17 @@ def test_cli_writes_a_report_to_the_synthetic_results_directory(tmp_path, monkey
     assert (tmp_path / phase4.REPORT_FILENAME).exists()
 
 
-def test_cli_real_run_is_refused_while_the_preregistration_is_a_draft(capsys):
+@pytest.mark.parametrize(
+    ("gate", "expected"),
+    [("DRAFT", "preregistration.md is DRAFT"), ("FROZEN", "no derived tables")],
+)
+def test_cli_real_run_is_refused(gate, expected, capsys, tmp_path, monkeypatch):
+    """SPEC.md 5.3, both gates (see test_phase1 for the full note). Refusal on STDERR."""
+    if gate == "DRAFT":
+        monkeypatch.setattr(dataset, "PREREGISTRATION", fixtures.draft_preregistration(tmp_path))
     assert phase4.main(["--real"]) == 1
-    assert "preregistration.md is DRAFT" in capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert "refused" in captured.err
+    assert expected in captured.err
+    assert "refused" not in captured.out
+    assert expected not in captured.out
